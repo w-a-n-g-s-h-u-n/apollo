@@ -11,6 +11,8 @@ public final class EnvUtils {
     switch (envName.trim().toUpperCase()) {
       case "LPT":
         return Env.LPT;
+      case "SIT":
+        return Env.SIT;
       case "FAT":
       case "FWS":
         return Env.FAT;
