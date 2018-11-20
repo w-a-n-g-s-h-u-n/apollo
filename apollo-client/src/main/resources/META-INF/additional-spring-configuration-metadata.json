@@ -1,0 +1,29 @@
+{
+    "properties": [
+        {
+            "name": "apollo.meta",
+            "type": "java.lang.String",
+            "description": "当前环境的Meta Server"
+        },
+        {
+            "name": "apollo.cluster",
+            "type": "java.lang.String",
+            "description": "当前集群名称"
+        },
+        {
+            "name": "apollo.cacheDir",
+            "type": "java.lang.String",
+            "description": "配置缓存路径"
+        },
+        {
+            "name": "apollo.bootstrap.enabled",
+            "type": "java.lang.Boolean",
+            "description": "在Spring Boot初始bootstrap阶段注入配置"
+        },
+        {
+            "name": "apollo.bootstrap.namespaces",
+            "type": "java.lang.String",
+            "description": "需要注入的namespaces"
+        }
+    ]
+}
