@@ -1,14 +1,19 @@
 {
     "properties": [
         {
-            "name": "apollo.meta",
+            "name": "app.id",
             "type": "java.lang.String",
-            "description": "当前环境的Meta Server"
+            "description": "Apollo中创建的AppId"
         },
         {
             "name": "apollo.cluster",
             "type": "java.lang.String",
             "description": "当前集群名称"
+        },
+        {
+            "name": "apollo.meta",
+            "type": "java.lang.String",
+            "description": "当前环境的Meta Server"
         },
         {
             "name": "apollo.cacheDir",
