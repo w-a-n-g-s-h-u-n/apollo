@@ -94,6 +94,7 @@
         <!-- docker -->
         <docker.prefix>10.225.12.12/apollo</docker.prefix>
 		<snapshots.repo>http://10.225.12.86:8081/repository/maven-snapshots/</snapshots.repo>
+		<releases.repo>http://10.225.12.86:8081/repository/maven-releases/</releases.repo>
 	</properties>
 
 	<modules>
