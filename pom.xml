@@ -93,6 +93,7 @@
 		<github.global.oauth2Token>${env.GITHUB_OAUTH_TOKEN}</github.global.oauth2Token>
         <!-- docker -->
         <docker.prefix>10.225.12.12/apollo</docker.prefix>
+		<snapshots.repo>http://10.225.12.86:8081/repository/maven-snapshots/</snapshots.repo>
 	</properties>
 
 	<modules>
