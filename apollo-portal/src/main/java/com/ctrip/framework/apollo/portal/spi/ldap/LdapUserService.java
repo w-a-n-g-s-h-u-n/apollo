@@ -40,6 +40,8 @@ public class LdapUserService implements UserService {
     private String[] department;
     @Value("#{'${ldap.filter.division:}'.split('\\|')}")
     private String[] division;
+    @Value("#{'${ldap.filter.description:}'.split('\\|')}")
+    private String[] description;
 
     @Autowired
     private LdapTemplate ldapTemplate;
@@ -47,6 +49,7 @@ public class LdapUserService implements UserService {
     private static final String MEMBER_OF_ATTR_NAME = "memberOf";
     private static final String DEPARTMENT_ATTR_NAME = "department";
     private static final String DIVISION_ATTR_NAME = "division";
+    private static final String DESCRIPTION_ATTR_NAME = "division";
 
     private ContextMapper<UserInfo> ldapUserInfoMapper = (ctx) -> {
         DirContextAdapter contextAdapter = (DirContextAdapter)ctx;
@@ -59,10 +62,10 @@ public class LdapUserService implements UserService {
 
     private ContainerCriteria ldapQueryCriteria() {
         ContainerCriteria criteria = query().searchScope(SearchScope.SUBTREE).where("objectClass").is(objectClassAttrName);
-        if (memberOf.length > 0 && !StringUtils.isEmpty(memberOf[0])) {
-            ContainerCriteria memberOfFilters = query().where(MEMBER_OF_ATTR_NAME).is(memberOf[0]);
-            Arrays.stream(memberOf).skip(1).forEach(filter -> memberOfFilters.or(MEMBER_OF_ATTR_NAME).is(filter));
-            criteria.and(memberOfFilters);
+        if (description.length > 0 && !StringUtils.isEmpty(description[0])) {
+            ContainerCriteria descriptionFilters = query().where(DESCRIPTION_ATTR_NAME).is(division[0]);
+            Arrays.stream(description).skip(1).forEach(filter -> descriptionFilters.or(DESCRIPTION_ATTR_NAME).is(filter));
+            criteria.and(descriptionFilters);
         }
         if (department.length > 0 && !StringUtils.isEmpty(department[0])) {
             ContainerCriteria departmentFilters = query().where(DEPARTMENT_ATTR_NAME).is(department[0]);
@@ -73,6 +76,11 @@ public class LdapUserService implements UserService {
             ContainerCriteria divisionFilters = query().where(DIVISION_ATTR_NAME).is(division[0]);
             Arrays.stream(division).skip(1).forEach(filter -> divisionFilters.or(DIVISION_ATTR_NAME).is(filter));
             criteria.and(divisionFilters);
+        }
+        if (memberOf.length > 0 && !StringUtils.isEmpty(memberOf[0])) {
+            ContainerCriteria memberOfFilters = query().where(MEMBER_OF_ATTR_NAME).is(memberOf[0]);
+            Arrays.stream(memberOf).skip(1).forEach(filter -> memberOfFilters.or(MEMBER_OF_ATTR_NAME).is(filter));
+            criteria.and(memberOfFilters);
         }
         return criteria;
     }
