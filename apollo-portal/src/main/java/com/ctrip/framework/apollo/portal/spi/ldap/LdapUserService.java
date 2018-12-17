@@ -49,7 +49,7 @@ public class LdapUserService implements UserService {
     private static final String MEMBER_OF_ATTR_NAME = "memberOf";
     private static final String DEPARTMENT_ATTR_NAME = "department";
     private static final String DIVISION_ATTR_NAME = "division";
-    private static final String DESCRIPTION_ATTR_NAME = "division";
+    private static final String DESCRIPTION_ATTR_NAME = "description";
 
     private ContextMapper<UserInfo> ldapUserInfoMapper = (ctx) -> {
         DirContextAdapter contextAdapter = (DirContextAdapter)ctx;
@@ -63,7 +63,7 @@ public class LdapUserService implements UserService {
     private ContainerCriteria ldapQueryCriteria() {
         ContainerCriteria criteria = query().searchScope(SearchScope.SUBTREE).where("objectClass").is(objectClassAttrName);
         if (description.length > 0 && !StringUtils.isEmpty(description[0])) {
-            ContainerCriteria descriptionFilters = query().where(DESCRIPTION_ATTR_NAME).is(division[0]);
+            ContainerCriteria descriptionFilters = query().where(DESCRIPTION_ATTR_NAME).is(description[0]);
             Arrays.stream(description).skip(1).forEach(filter -> descriptionFilters.or(DESCRIPTION_ATTR_NAME).is(filter));
             criteria.and(descriptionFilters);
         }
