@@ -1,0 +1,17 @@
+spring:
+  ldap:
+    base: "dc=genomics,dc=cn"
+    username: "CN=P_GeneBankSample,OU=public,DC=genomics,DC=cn" # 配置管理员账号，用于搜索、匹配用户
+    password: "Bgi!2017"
+    searchFilter: "(sAMAccountName={0})"  # 用户过滤器，登录的时候用这个过滤器来搜索用户
+    urls:
+    - "ldap://192.168.16.2:389"
+
+ldap:
+  mapping: # 配置 ldap 属性
+    objectClass: "user" # ldap 用户 objectClass 配置
+    loginId: "sAMAccountName" # ldap 用户惟一 id，用来作为登录的 id
+    userDisplayName: "cn" # ldap 用户名，用来作为显示名
+    email: "userPrincipalName" # ldap 邮箱属性
+  filter: # 可选项，配置过滤，目前只支持 memberOf
+    department: "软件开发与测试中心" # 只允许 department 属性为 软件开发与测试中心 的用户访问
