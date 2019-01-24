@@ -42,6 +42,8 @@ public class LdapUserService implements UserService {
     private String[] division;
     @Value("#{'${ldap.filter.description:}'.split('\\|')}")
     private String[] description;
+    @Value("#{'${ldap.filter.sAMAccountName:}'.split('\\|')}")
+    private String[] sAMAccountName;
 
     @Autowired
     private LdapTemplate ldapTemplate;
@@ -50,6 +52,7 @@ public class LdapUserService implements UserService {
     private static final String DEPARTMENT_ATTR_NAME = "department";
     private static final String DIVISION_ATTR_NAME = "division";
     private static final String DESCRIPTION_ATTR_NAME = "description";
+    private static final String sAMAccountName_ATTR_NAME = "sAMAccountName";
 
     private ContextMapper<UserInfo> ldapUserInfoMapper = (ctx) -> {
         DirContextAdapter contextAdapter = (DirContextAdapter)ctx;
@@ -62,6 +65,11 @@ public class LdapUserService implements UserService {
 
     private ContainerCriteria ldapQueryCriteria() {
         ContainerCriteria criteria = query().searchScope(SearchScope.SUBTREE).where("objectClass").is(objectClassAttrName);
+        if (sAMAccountName.length > 0 && !StringUtils.isEmpty(sAMAccountName[0])) {
+            ContainerCriteria sAMAccountNameFilters = query().where(sAMAccountName_ATTR_NAME).is(sAMAccountName[0]);
+            Arrays.stream(sAMAccountName).skip(1).forEach(filter -> sAMAccountNameFilters.or(sAMAccountName_ATTR_NAME).is(filter));
+            criteria.and(sAMAccountNameFilters);
+        }
         if (description.length > 0 && !StringUtils.isEmpty(description[0])) {
             ContainerCriteria descriptionFilters = query().where(DESCRIPTION_ATTR_NAME).is(description[0]);
             Arrays.stream(description).skip(1).forEach(filter -> descriptionFilters.or(DESCRIPTION_ATTR_NAME).is(filter));

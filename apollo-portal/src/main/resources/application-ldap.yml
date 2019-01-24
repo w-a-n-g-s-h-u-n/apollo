@@ -13,7 +13,8 @@ ldap:
     loginId: "sAMAccountName" # ldap 用户惟一 id，用来作为登录的 id
     userDisplayName: "cn" # ldap 用户名，用来作为显示名
     email: "userPrincipalName" # ldap 邮箱属性
-  filter: # 可选项，配置过滤，目前只支持 memberOf,department,division,description 支持|分割表示或
-    description: "BGI15122|BGI15523|BGI15274|BGI16647|BGI16176|BGI6527|BGI15174"
+  filter: # 可选项，配置过滤，目前只支持 sAMAccountName,memberOf,department,division,description 支持|分割表示或
+    sAMAccountName: "wangshun|liliang2|shitianyou|hujiaming|zhangwen3|biejunyang|huchanglong|c-sunzhifei"
+#    description: "BGI15122|BGI15523|BGI15274|BGI16647|BGI16176|BGI6527|BGI15174"
 #    department: "软件开发与测试中心"
 #    division: "华大大数据中心"
