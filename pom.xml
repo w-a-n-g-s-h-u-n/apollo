@@ -92,9 +92,9 @@
 		<github.global.server>github</github.global.server>
 		<github.global.oauth2Token>${env.GITHUB_OAUTH_TOKEN}</github.global.oauth2Token>
         <!-- docker -->
-        <docker.prefix>10.225.12.12/apollo</docker.prefix>
-		<snapshots.repo>http://10.225.12.86:8081/repository/maven-snapshots/</snapshots.repo>
-		<releases.repo>http://10.225.12.86:8081/repository/maven-releases/</releases.repo>
+        <docker.prefix>10.225.12.132:5000/apollo</docker.prefix>
+		<snapshots.repo>http://10.225.12.99:30011/repository/maven-snapshots/</snapshots.repo>
+		<releases.repo>http://10.225.12.99:30011/repository/maven-releases/</releases.repo>
 	</properties>
 
 	<modules>
