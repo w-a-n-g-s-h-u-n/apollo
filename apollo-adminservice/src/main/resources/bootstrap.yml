@@ -1,7 +1,7 @@
 eureka:
   instance:
     hostname: ${hostname:localhost}
-    homePageUrl: http://${APOLLO_HOMEPAGE}
+    home-page-url: http://${APOLLO_HOMEPAGE}
     preferIpAddress: false
     status-page-url-path: /info
     health-check-url-path: /health
