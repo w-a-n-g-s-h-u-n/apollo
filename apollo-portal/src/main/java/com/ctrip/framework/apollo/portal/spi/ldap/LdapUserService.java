@@ -9,6 +9,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.TreeSet;
+import java.util.stream.Collectors;
 
 import javax.naming.directory.Attribute;
 import javax.naming.ldap.LdapName;
@@ -26,10 +27,13 @@ import org.springframework.ldap.support.LdapUtils;
 import org.springframework.util.CollectionUtils;
 
 import com.ctrip.framework.apollo.portal.entity.bo.UserInfo;
+import com.ctrip.framework.apollo.portal.entity.po.UserPO;
+import com.ctrip.framework.apollo.portal.repository.UserRepository;
 import com.ctrip.framework.apollo.portal.spi.UserService;
 import com.ctrip.framework.apollo.portal.spi.configuration.LdapExtendProperties;
 import com.ctrip.framework.apollo.portal.spi.configuration.LdapProperties;
 import com.google.common.base.Strings;
+import com.google.common.collect.Lists;
 
 /**
  * Ldap user spi service
@@ -48,6 +52,9 @@ public class LdapUserService implements UserService {
 
     @Autowired
     private LdapExtendProperties ldapExtendProperties;
+
+    @Autowired
+    private UserRepository userRepository;
 
     /**
      * ldap search base
@@ -273,7 +280,10 @@ public class LdapUserService implements UserService {
 
     @Override
     public List<UserInfo> searchUsers(String keyword, int offset, int limit) {
-        List<UserInfo> users = new ArrayList<>();
+        List<UserInfo> users = searchDatabaseUsers(keyword, offset, limit);
+        if (!CollectionUtils.isEmpty(users)) {
+            return users;
+        }
         if (StringUtils.isNotBlank(groupSearch)) {
             List<UserInfo> userListByGroup = searchUserInfoByGroup(groupBase, groupSearch, keyword, null);
             users.addAll(userListByGroup);
@@ -293,8 +303,30 @@ public class LdapUserService implements UserService {
         }
     }
 
+    private List<UserInfo> searchDatabaseUsers(String keyword, int offset, int limit) {
+        List<UserPO> users;
+        if (StringUtils.isEmpty(keyword)) {
+            users = userRepository.findFirst20ByEnabled(1);
+        } else {
+            users = userRepository.findByUsernameLikeAndEnabled("%" + keyword + "%", 1);
+        }
+
+        List<UserInfo> result = Lists.newArrayList();
+        if (CollectionUtils.isEmpty(users)) {
+            return result;
+        }
+
+        result.addAll(users.stream().map(UserPO::toUserInfo).collect(Collectors.toList()));
+
+        return result;
+    }
+
     @Override
     public UserInfo findByUserId(String userId) {
+        UserInfo user = findDatabaseUserByUserId(userId);
+        if (user != null) {
+            return user;
+        }
         if (StringUtils.isNotBlank(groupSearch)) {
             List<UserInfo> lists = searchUserInfoByGroup(groupBase, groupSearch, null, Collections.singletonList(userId));
             if (lists != null && !lists.isEmpty() && lists.get(0) != null) {
@@ -307,22 +339,42 @@ public class LdapUserService implements UserService {
         }
     }
 
+    private UserInfo findDatabaseUserByUserId(String userId) {
+        UserPO userPO = userRepository.findByUsername(userId);
+        return userPO == null ? null : userPO.toUserInfo();
+    }
+
     @Override
     public List<UserInfo> findByUserIds(List<String> userIds) {
         if (CollectionUtils.isEmpty(userIds)) {
             return Collections.emptyList();
+        }
+        List<UserInfo> userList = findDatabaseUserByUserIds(userIds);
+        if (!CollectionUtils.isEmpty(userList)) {
+            return userList;
+        }
+        if (StringUtils.isNotBlank(groupSearch)) {
+            List<UserInfo> userListByGroup = searchUserInfoByGroup(groupBase, groupSearch, null, userIds);
+            userList.addAll(userListByGroup);
+            return userList;
         } else {
-            List<UserInfo> userList = new ArrayList<>();
-            if (StringUtils.isNotBlank(groupSearch)) {
-                List<UserInfo> userListByGroup = searchUserInfoByGroup(groupBase, groupSearch, null, userIds);
-                userList.addAll(userListByGroup);
-                return userList;
-            } else {
-                ContainerCriteria criteria = query().where(loginIdAttrName).is(userIds.get(0));
-                userIds.stream().skip(1).forEach(userId -> criteria.or(loginIdAttrName).is(userId));
-                return ldapTemplate.search(ldapQueryCriteria().and(criteria), ldapUserInfoMapper);
-            }
+            ContainerCriteria criteria = query().where(loginIdAttrName).is(userIds.get(0));
+            userIds.stream().skip(1).forEach(userId -> criteria.or(loginIdAttrName).is(userId));
+            return ldapTemplate.search(ldapQueryCriteria().and(criteria), ldapUserInfoMapper);
         }
     }
 
+    private List<UserInfo> findDatabaseUserByUserIds(List<String> userIds) {
+        List<UserPO> users = userRepository.findByUsernameIn(userIds);
+
+        if (CollectionUtils.isEmpty(users)) {
+            return Collections.emptyList();
+        }
+
+        List<UserInfo> result = Lists.newArrayList();
+
+        result.addAll(users.stream().map(UserPO::toUserInfo).collect(Collectors.toList()));
+
+        return result;
+    }
 }
