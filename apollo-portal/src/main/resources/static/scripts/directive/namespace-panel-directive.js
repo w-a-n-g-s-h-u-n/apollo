@@ -51,6 +51,7 @@ function directive($window, toastr, AppUtil, EventManager, PermissionService, Na
             scope.loadCommitHistory = loadCommitHistory;
             scope.toggleTextEditStatus = toggleTextEditStatus;
             scope.goToSyncPage = goToSyncPage;
+            scope.goToDiffPage = goToDiffPage;
             scope.modifyByText = modifyByText;
             scope.syntaxCheck = syntaxCheck;
             scope.goToParentAppConfigPage = goToParentAppConfigPage;
@@ -91,7 +92,7 @@ function directive($window, toastr, AppUtil, EventManager, PermissionService, Na
                 //namespace view name hide suffix
                 namespace.viewName = namespace.baseInfo.namespaceName.replace(".xml", "").replace(
                             ".properties", "").replace(".json", "").replace(".yml", "")
-                            .replace(".yaml", "");
+                            .replace(".yaml", "").replace(".txt", "");
             }
 
             function init() {
@@ -190,14 +191,15 @@ function directive($window, toastr, AppUtil, EventManager, PermissionService, Na
 
                             //modify master item and set item's masterReleaseValue
                             if (masterItem) {
-                                if (masterItem.isModified && masterItem.oldValue) {
+                                item.masterItemExists = true;
+                                if (masterItem.isModified) {
                                     item.masterReleaseValue = masterItem.oldValue;
-                                } else if (masterItem.item.value) {
+                                } else {
                                     item.masterReleaseValue = masterItem.item.value;
                                 }
 
                             } else {//delete branch item
-                                item.masterReleaseValue = '';
+                                item.masterItemExists = false;
                             }
 
                             //delete master item. ignore
@@ -701,6 +703,14 @@ function directive($window, toastr, AppUtil, EventManager, PermissionService, Na
                     + "&namespaceName=" + namespace.baseInfo.namespaceName;
             }
 
+            function goToDiffPage(namespace) {
+                $window.location.href =
+                    "config/diff.html?#/appid=" + scope.appId + "&env="
+                    + scope.env + "&clusterName="
+                    + scope.cluster
+                    + "&namespaceName=" + namespace.baseInfo.namespaceName;
+            }
+
             function modifyByText(namespace) {
                 var model = {
                     configText: namespace.editText,
@@ -881,7 +891,7 @@ function directive($window, toastr, AppUtil, EventManager, PermissionService, Na
                 $blockScrolling: Infinity,
                 showPrintMargin: false,
                 theme: 'eclipse',
-                mode: scope.namespace.format === 'yml' ? 'yaml' : scope.namespace.format,
+                mode: scope.namespace.format === 'yml' ? 'yaml' : (scope.namespace.format === 'txt' ? undefined : scope.namespace.format),
                 onLoad: function (_editor) {
                     _editor.$blockScrolling = Infinity;
                     _editor.setOptions({
