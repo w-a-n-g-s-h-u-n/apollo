@@ -1,0 +1,11 @@
+spring:
+  security:
+    cas:
+      client:
+        host: http://localhost:8070
+        login-url: /login/cas
+        logout-url: /user/logout
+      server:
+        host: https://login.genomics.cn
+        login-url: /cas
+        logout-url: /cas/logout

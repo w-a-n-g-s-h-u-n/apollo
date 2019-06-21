@@ -1,25 +1,14 @@
 package com.ctrip.framework.apollo.portal.spi.configuration;
 
-import com.ctrip.framework.apollo.common.condition.ConditionalOnMissingProfile;
-import com.ctrip.framework.apollo.core.utils.StringUtils;
-import com.ctrip.framework.apollo.portal.component.config.PortalConfig;
-import com.ctrip.framework.apollo.portal.spi.LogoutHandler;
-import com.ctrip.framework.apollo.portal.spi.SsoHeartbeatHandler;
-import com.ctrip.framework.apollo.portal.spi.UserInfoHolder;
-import com.ctrip.framework.apollo.portal.spi.UserService;
-import com.ctrip.framework.apollo.portal.spi.ctrip.CtripLogoutHandler;
-import com.ctrip.framework.apollo.portal.spi.ctrip.CtripSsoHeartbeatHandler;
-import com.ctrip.framework.apollo.portal.spi.ctrip.CtripUserInfoHolder;
-import com.ctrip.framework.apollo.portal.spi.ctrip.CtripUserService;
-import com.ctrip.framework.apollo.portal.spi.defaultimpl.DefaultLogoutHandler;
-import com.ctrip.framework.apollo.portal.spi.defaultimpl.DefaultSsoHeartbeatHandler;
-import com.ctrip.framework.apollo.portal.spi.defaultimpl.DefaultUserInfoHolder;
-import com.ctrip.framework.apollo.portal.spi.defaultimpl.DefaultUserService;
-import com.ctrip.framework.apollo.portal.spi.ldap.FilterLdapByGroupUserSearch;
-import com.ctrip.framework.apollo.portal.spi.ldap.LdapUserService;
-import com.ctrip.framework.apollo.portal.spi.springsecurity.SpringSecurityUserInfoHolder;
-import com.ctrip.framework.apollo.portal.spi.springsecurity.SpringSecurityUserService;
-import com.google.common.collect.Maps;
+import java.util.Collections;
+import java.util.EventListener;
+import java.util.Map;
+
+import javax.servlet.Filter;
+import javax.sql.DataSource;
+
+import org.jasig.cas.client.session.SingleSignOutFilter;
+import org.jasig.cas.client.validation.Cas20ServiceTicketValidator;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
@@ -33,6 +22,10 @@ import org.springframework.ldap.core.ContextSource;
 import org.springframework.ldap.core.LdapOperations;
 import org.springframework.ldap.core.LdapTemplate;
 import org.springframework.ldap.core.support.LdapContextSource;
+import org.springframework.security.cas.ServiceProperties;
+import org.springframework.security.cas.authentication.CasAuthenticationProvider;
+import org.springframework.security.cas.web.CasAuthenticationEntryPoint;
+import org.springframework.security.cas.web.CasAuthenticationFilter;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -45,13 +38,33 @@ import org.springframework.security.ldap.search.FilterBasedLdapUserSearch;
 import org.springframework.security.ldap.userdetails.DefaultLdapAuthoritiesPopulator;
 import org.springframework.security.provisioning.JdbcUserDetailsManager;
 import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
+import org.springframework.security.web.authentication.logout.LogoutFilter;
+import org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler;
 import org.springframework.security.web.authentication.logout.SimpleUrlLogoutSuccessHandler;
 
-import javax.servlet.Filter;
-import javax.sql.DataSource;
-import java.util.Collections;
-import java.util.EventListener;
-import java.util.Map;
+import com.ctrip.framework.apollo.common.condition.ConditionalOnMissingProfile;
+import com.ctrip.framework.apollo.core.utils.StringUtils;
+import com.ctrip.framework.apollo.portal.component.config.PortalConfig;
+import com.ctrip.framework.apollo.portal.repository.UserRepository;
+import com.ctrip.framework.apollo.portal.spi.LogoutHandler;
+import com.ctrip.framework.apollo.portal.spi.SsoHeartbeatHandler;
+import com.ctrip.framework.apollo.portal.spi.UserInfoHolder;
+import com.ctrip.framework.apollo.portal.spi.UserService;
+import com.ctrip.framework.apollo.portal.spi.cas.CasAuthenticationUserDetailsService;
+import com.ctrip.framework.apollo.portal.spi.cas.CasProperties;
+import com.ctrip.framework.apollo.portal.spi.ctrip.CtripLogoutHandler;
+import com.ctrip.framework.apollo.portal.spi.ctrip.CtripSsoHeartbeatHandler;
+import com.ctrip.framework.apollo.portal.spi.ctrip.CtripUserInfoHolder;
+import com.ctrip.framework.apollo.portal.spi.ctrip.CtripUserService;
+import com.ctrip.framework.apollo.portal.spi.defaultimpl.DefaultLogoutHandler;
+import com.ctrip.framework.apollo.portal.spi.defaultimpl.DefaultSsoHeartbeatHandler;
+import com.ctrip.framework.apollo.portal.spi.defaultimpl.DefaultUserInfoHolder;
+import com.ctrip.framework.apollo.portal.spi.defaultimpl.DefaultUserService;
+import com.ctrip.framework.apollo.portal.spi.ldap.FilterLdapByGroupUserSearch;
+import com.ctrip.framework.apollo.portal.spi.ldap.LdapUserService;
+import com.ctrip.framework.apollo.portal.spi.springsecurity.SpringSecurityUserInfoHolder;
+import com.ctrip.framework.apollo.portal.spi.springsecurity.SpringSecurityUserService;
+import com.google.common.collect.Maps;
 
 @Configuration
 public class AuthConfiguration {
@@ -198,10 +211,10 @@ public class AuthConfiguration {
   }
 
   /**
-   * spring.profiles.active = auth
+   * spring.profiles.active = auth,cas
    */
   @Configuration
-  @Profile("auth")
+  @Profile({"auth","cas"})
   static class SpringSecurityAuthAutoConfiguration {
 
     @Bean
@@ -280,6 +293,87 @@ public class AuthConfiguration {
       http.exceptionHandling().authenticationEntryPoint(new LoginUrlAuthenticationEntryPoint("/signin"));
     }
 
+  }
+  @Order(99)
+  @Profile("cas")
+  @Configuration
+  @EnableWebSecurity
+  @EnableGlobalMethodSecurity(prePostEnabled = true)
+  @EnableConfigurationProperties(CasProperties.class)
+  static class SpringSecurityCASAuthAutoConfiguration extends WebSecurityConfigurerAdapter {
+      
+      public static final String USER_ROLE = "user";
+      private final CasProperties casProperties;
+      private final UserRepository userRepository;
+      
+      public SpringSecurityCASAuthAutoConfiguration(CasProperties casProperties,UserRepository userRepository) {
+        this.casProperties = casProperties;
+        this.userRepository = userRepository;
+    }
+      @Bean
+      public ServiceProperties casServiceProperties() {
+          ServiceProperties casServiceProperties = new ServiceProperties();
+          casServiceProperties.setService(casProperties.getService());
+          casServiceProperties.setSendRenew(casProperties.getSendRenew());
+          casServiceProperties.setServiceParameter(casProperties.getServiceParameter());
+          casServiceProperties.setArtifactParameter(casProperties.getArtifactParameter());
+          casServiceProperties.setAuthenticateAllArtifacts(casProperties.getAuthenticateAllArtifacts());
+          return casServiceProperties;
+      }
+      @Override
+      protected void configure(HttpSecurity http) throws Exception {
+          http.csrf().disable();
+          http.headers().frameOptions().sameOrigin();
+          http.authorizeRequests()
+          .antMatchers("/openapi/**", "/vendor/**", "/styles/**", "/scripts/**", "/views/**", "/img/**").permitAll()
+          .antMatchers("/**").hasAnyRole(USER_ROLE);
+          http.exceptionHandling().authenticationEntryPoint(casAuthenticationEntryPoint());
+          http.addFilterAt(casAuthenticationFilter(),CasAuthenticationFilter.class);
+          http.addFilterBefore(casLogoutFilter(),LogoutFilter.class);
+          http.addFilterBefore(singleSignOutFilter(),CasAuthenticationFilter.class);
+      }
+      @Override
+      protected void configure(AuthenticationManagerBuilder auth) throws Exception {
+          auth.authenticationProvider(casAuthenticationProvider());
+      }
+
+      private CasAuthenticationProvider casAuthenticationProvider() {
+          CasAuthenticationProvider casAuthenticationProvider = new CasAuthenticationProvider();
+          casAuthenticationProvider.setServiceProperties(casServiceProperties());
+          Cas20ServiceTicketValidator cas20ServiceTicketValidator = new Cas20ServiceTicketValidator(casProperties.getCasServerLoginUrl());
+          casAuthenticationProvider.setTicketValidator(cas20ServiceTicketValidator);
+          casAuthenticationProvider.setKey("casAuthenticationProviderKey");
+          casAuthenticationProvider.setAuthenticationUserDetailsService(new CasAuthenticationUserDetailsService(userRepository));
+          return casAuthenticationProvider;
+      }
+
+      private CasAuthenticationEntryPoint casAuthenticationEntryPoint() {
+          CasAuthenticationEntryPoint casAuthenticationEntryPoint = new CasAuthenticationEntryPoint();
+          casAuthenticationEntryPoint.setLoginUrl(casProperties.getCasServerLoginUrl());
+          casAuthenticationEntryPoint.setServiceProperties(casServiceProperties());
+          return casAuthenticationEntryPoint;
+      }
+
+      @Bean
+      public CasAuthenticationFilter casAuthenticationFilter() throws Exception {
+          CasAuthenticationFilter casAuthenticationFilter = new CasAuthenticationFilter();
+          casAuthenticationFilter.setAuthenticationManager(authenticationManagerBean());
+          casAuthenticationFilter.setFilterProcessesUrl(casProperties.getClient().getLoginUrl());
+          return casAuthenticationFilter;
+      }
+
+      private SingleSignOutFilter singleSignOutFilter() {
+          SingleSignOutFilter singleSignOutFilter = new SingleSignOutFilter();
+          singleSignOutFilter.setCasServerUrlPrefix(casProperties.getCasServerLoginUrl());
+          // singleSignOutFilter.setIgnoreInitConfiguration(true);
+          return singleSignOutFilter;
+      }
+
+      private LogoutFilter casLogoutFilter() {
+          LogoutFilter logoutFilter = new LogoutFilter(casProperties.getCasServerLogoutUrl(), new SecurityContextLogoutHandler());
+          logoutFilter.setFilterProcessesUrl(casProperties.getClient().getLogoutUrl());
+          return logoutFilter;
+      }
   }
 
   /**
@@ -422,7 +516,7 @@ public class AuthConfiguration {
    * default profile
    */
   @Configuration
-  @ConditionalOnMissingProfile({"ctrip", "auth", "ldap"})
+  @ConditionalOnMissingProfile({"ctrip", "auth", "ldap", "cas"})
   static class DefaultAuthAutoConfiguration {
 
     @Bean
@@ -450,7 +544,7 @@ public class AuthConfiguration {
     }
   }
 
-  @ConditionalOnMissingProfile({"auth", "ldap"})
+  @ConditionalOnMissingProfile({"auth", "ldap", "cas"})
   @Configuration
   @EnableWebSecurity
   @EnableGlobalMethodSecurity(prePostEnabled = true)
