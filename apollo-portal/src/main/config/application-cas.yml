@@ -1,6 +1,6 @@
 eureka:
   instance:
-    home-page-url: http://${APOLLO_HOMEPAGE}
+    home-page-url: http://${APOLLO_HOMEPAGE:localhost:8070}
 spring:
   security:
     cas:

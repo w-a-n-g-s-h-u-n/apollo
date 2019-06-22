@@ -55,6 +55,9 @@ function ConfigBaseInfoController($rootScope, $scope, $window, $location, toastr
 
         $scope.notFoundApp = true;
         AppService.load($rootScope.pageContext.appId).then(function (result) {
+          UserService.load_user(result.ownerName).then(function (user) {
+            result.owner = user;
+
             $scope.notFoundApp = false;
 
             $scope.appBaseInfo = result;
@@ -65,6 +68,7 @@ function ConfigBaseInfoController($rootScope, $scope, $window, $location, toastr
             findMissEnvs();
 
             $(".J_appFound").removeClass("hidden");
+          })
         }, function (result) {
             $(".J_appNotFound").removeClass("hidden");
         });

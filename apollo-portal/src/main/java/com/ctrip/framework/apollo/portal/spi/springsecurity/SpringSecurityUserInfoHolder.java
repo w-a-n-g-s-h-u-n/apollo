@@ -9,6 +9,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.ldap.userdetails.LdapUserDetails;
 
 import com.ctrip.framework.apollo.portal.entity.bo.UserInfo;
+import com.ctrip.framework.apollo.portal.entity.po.UserPO;
 import com.ctrip.framework.apollo.portal.spi.UserInfoHolder;
 
 public class SpringSecurityUserInfoHolder implements UserInfoHolder {
@@ -27,6 +28,8 @@ public class SpringSecurityUserInfoHolder implements UserInfoHolder {
                 userInfo.setName(matcher.group());
                 return userInfo;
             }
+        } else if (principal instanceof UserPO) {
+            return ((UserPO)principal).toUserInfo();
         } else if (principal instanceof UserDetails) {
             userInfo.setUserId(((UserDetails)principal).getUsername());
         } else if (principal instanceof Principal) {

@@ -6,10 +6,12 @@ import com.ctrip.framework.apollo.portal.entity.bo.UserInfo;
 import com.ctrip.framework.apollo.portal.entity.po.Permission;
 import com.ctrip.framework.apollo.portal.entity.po.Role;
 import com.ctrip.framework.apollo.portal.entity.po.RolePermission;
+import com.ctrip.framework.apollo.portal.entity.po.UserPO;
 import com.ctrip.framework.apollo.portal.entity.po.UserRole;
 import com.ctrip.framework.apollo.portal.repository.PermissionRepository;
 import com.ctrip.framework.apollo.portal.repository.RolePermissionRepository;
 import com.ctrip.framework.apollo.portal.repository.RoleRepository;
+import com.ctrip.framework.apollo.portal.repository.UserRepository;
 import com.ctrip.framework.apollo.portal.repository.UserRoleRepository;
 import com.ctrip.framework.apollo.portal.service.RolePermissionService;
 import com.google.common.base.Preconditions;
@@ -45,6 +47,8 @@ public class DefaultRolePermissionService implements RolePermissionService {
     private PortalConfig portalConfig;
     @Autowired
     private ConsumerRoleRepository consumerRoleRepository;
+    @Autowired
+    private UserRepository userRepository;
 
     /**
      * Create role with permissions, note that role name should be unique
@@ -134,12 +138,8 @@ public class DefaultRolePermissionService implements RolePermissionService {
 
         List<UserRole> userRoles = userRoleRepository.findByRoleId(role.getId());
 
-        Set<UserInfo> users = userRoles.stream().map(userRole -> {
-            UserInfo userInfo = new UserInfo();
-            userInfo.setUserId(userRole.getUserId());
-            return userInfo;
-        }).collect(Collectors.toSet());
-
+        List<String> userIds = userRoles.stream().map(UserRole::getUserId).collect(Collectors.toList());
+        Set<UserInfo> users = userRepository.findByUsernameIn(userIds).stream().map(UserPO::toUserInfo).collect(Collectors.toSet());
         return users;
     }
 

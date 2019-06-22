@@ -1,11 +1,11 @@
 setting_module.controller('SettingController',
                           ['$scope', '$location', 'toastr',
-                           'AppService', 'AppUtil', 'PermissionService',
+                            'AppService', 'UserService', 'AppUtil', 'PermissionService',
                            'OrganizationService',
                            SettingController]);
 
 function SettingController($scope, $location, toastr,
-                           AppService, AppUtil, PermissionService,
+                           AppService, UserService, AppUtil, PermissionService,
                            OrganizationService) {
 
     var params = AppUtil.parseParams($location.$$url);
@@ -79,10 +79,13 @@ function SettingController($scope, $location, toastr,
 
     function initApplication() {
         AppService.load($scope.pageContext.appId).then(function (app) {
+          UserService.load_user(app.ownerName).then(function (user) {
+            app.owner = user;
             $scope.app = app;
             $scope.viewApp = _.clone(app);
             initAppForm(app);
             $('.project-setting .panel').removeClass('hidden');
+          })
         })
 
     }
@@ -91,10 +94,10 @@ function SettingController($scope, $location, toastr,
         $orgWidget.val(app.orgId).trigger("change");
 
         var $ownerSelector = $('.ownerSelector');
-        var defaultSelectedDOM = '<option value="' + app.ownerName + '" selected="selected">' + app.ownerName
-                                 + '</option>';
-        $ownerSelector.append(defaultSelectedDOM);
-        $ownerSelector.trigger('change');
+        var defaultSelectedDOM = '<option value="' + app.ownerName + '" selected="selected">' + app.owner.name
+          + '</option>';
+          $ownerSelector.append(defaultSelectedDOM);
+          $ownerSelector.trigger('change');
     }
 
     function assignMasterRoleToUser() {

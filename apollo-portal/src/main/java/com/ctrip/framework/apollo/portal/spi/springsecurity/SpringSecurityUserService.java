@@ -30,7 +30,6 @@ import javax.annotation.PostConstruct;
  */
 public class SpringSecurityUserService implements UserService {
 
-  private PasswordEncoder encoder = new BCryptPasswordEncoder();
   private List<GrantedAuthority> authorities;
 
   @Autowired
@@ -48,7 +47,7 @@ public class SpringSecurityUserService implements UserService {
   public void createOrUpdate(UserPO user) {
     String username = user.getUsername();
 
-    User userDetails = new User(username, encoder.encode(user.getPassword()), authorities);
+    User userDetails = new User(username, user.getPassword(), authorities);
 
     if (userDetailsManager.userExists(username)) {
       userDetailsManager.updateUser(userDetails);

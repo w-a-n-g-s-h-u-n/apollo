@@ -83,7 +83,7 @@ public class UserPO implements UserDetails {
 
     public UserInfo toUserInfo() {
         UserInfo userInfo = new UserInfo();
-        userInfo.setName(this.getUsername());
+        userInfo.setName(password);
         userInfo.setUserId(this.getUsername());
         userInfo.setEmail(this.getEmail());
         return userInfo;
