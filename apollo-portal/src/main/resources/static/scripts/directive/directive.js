@@ -1,6 +1,6 @@
 /** navbar */
 directive_module.directive('apollonav',
-                           function ($compile, $window, toastr, AppUtil, AppService, EnvService,
+    function ($compile, $window, $translate, toastr, AppUtil, AppService, EnvService,
                            UserService, CommonService, PermissionService) {
                                return {
                                    restrict: 'E',
@@ -13,105 +13,71 @@ directive_module.directive('apollonav',
                                            scope.pageSetting = setting;
                                        });
 
-                                       scope.sourceApps = [];
-                                       scope.copiedApps = [];
-
-                                       AppService.find_apps().then(function (result) {
-                                           result.forEach(function (app) {
-                                               app.selected = false;
-                                               scope.sourceApps.push(app);
+               // Looks like a trick to make xml/yml/json namespaces display right, but why?
+               $(document).on('click', function () {
+                   scope.$apply(function () {});
                                            });
-                                           scope.copiedApps = angular.copy(scope.sourceApps);
-                                       }, function (result) {
-                                           toastr.error(AppUtil.errorMsg(result), "load apps error");
-                                       });
 
-                                       scope.searchKey = '';
-                                       scope.shouldShowAppList = false;
-
-                                       var selectedApp = {};
-                                       scope.selectApp = function (app) {
-                                           select(app);
-                                           scope.jumpToConfigPage();
+               $translate('ApolloConfirmDialog.SearchPlaceHolder').then(function(placeholderLabel)  {
+                   $('#app-search-list').select2({
+                      placeholder: placeholderLabel,
+                      ajax: {
+                        url: "/apps/search",
+                        dataType: 'json',
+                        delay: 400,
+                        data: function (params) {
+                            return {
+                                query: params.term || '',
+                                page: params.page ? params.page - 1 : 0,
+                                    size: 20
                                        };
-
-                                       scope.changeSearchKey = function () {
-                                           scope.copiedApps = [];
-                                           var searchKey = scope.searchKey.toLocaleLowerCase();
-                                           scope.sourceApps.forEach(function (app) {
-                                               if (app.name.toLocaleLowerCase().indexOf(searchKey) > -1
-                                                   || app.appId.toLocaleLowerCase().indexOf(searchKey) > -1) {
-                                                   scope.copiedApps.push(app);
+                            },
+                            processResults: function (data) {
+                                if (data && data.content) {
+                                    var hasMore = data.content.length
+                                        === data.size;
+                                    var result = [];
+                                    data.content.forEach(function (app) {
+                                        result.push({
+                                            id: app.appId,
+                                            text: app.appId + ' / ' + app.name
+                                        })
+                                    });
+                                    return {
+                                        results: result,
+                                        pagination: {
+                                            more: hasMore
                                                }
-                                           });
-                                           scope.shouldShowAppList = true;
                                        };
-
-                                       scope.jumpToConfigPage = function () {
-                                           if (selectedApp.appId) {
-                                               if ($window.location.href.indexOf("config.html") > -1) {
-                                                   $window.location.hash = "appid=" + selectedApp.appId;
-                                                   $window.location.reload();
                                                } else {
-                                                   $window.location.href = '/config.html?#appid=' + selectedApp.appId;
+                                    return {
+                                        results: [],
+                                        pagination: {
+                                            more: false
                                                }
+                                    };
                                            }
-                                       };
 
-                                       //up:38 down:40 enter:13
-                                       var selectedAppIdx = -1;
-                                       element.bind("keydown keypress", function (event) {
+                                               }
+                                               }
+                    });
 
-                                           if (event.keyCode == 40) {
-                                               if (selectedAppIdx < scope.copiedApps.length - 1) {
-                                                   clearAppsSelectedStatus();
-                                                   scope.copiedApps[++selectedAppIdx].selected = true;
-                                               }
-                                           } else if (event.keyCode == 38) {
-                                               if (selectedAppIdx >= 1) {
-                                                   clearAppsSelectedStatus();
-                                                   scope.copiedApps[--selectedAppIdx].selected = true;
-                                               }
-                                           } else if (event.keyCode == 13) {
-                                               if (scope.shouldShowAppList && selectedAppIdx > -1) {
-                                                   select(scope.copiedApps[selectedAppIdx]);
-                                                   event.preventDefault();
-                                               } else {
-                                                   scope.jumpToConfigPage();
-                                               }
-
+                    $('#app-search-list').on('select2:select', function () {
+                        var selected = $('#app-search-list').select2('data');
+                        if (selected && selected.length) {
+                            jumpToConfigPage(selected[0].id)
                                            }
-                                           //强制刷新
-                                           scope.$apply(function () {
-                                               scope.copiedApps = scope.copiedApps;
                                            });
                                        });
 
-                                       $(".search-input").on("click", function (event) {
-                                           event.stopPropagation();
-                                       });
-
-                                       $(document).on('click', function () {
-                                           scope.$apply(function () {
-                                               scope.shouldShowAppList = false;
-                                           });
-                                       });
-
-                                       function clearAppsSelectedStatus() {
-                                           scope.copiedApps.forEach(function (app) {
-                                               app.selected = false;
-                                           })
-
+                function jumpToConfigPage(selectedAppId) {
+                    if ($window.location.href.indexOf("config.html") > -1) {
+                        $window.location.hash = "appid=" + selectedAppId;
+                        $window.location.reload();
+                    } else {
+                        $window.location.href = '/config.html?#appid=' + selectedAppId;
                                        }
-
-                                       function select(app) {
-                                           selectedApp = app;
-                                           scope.searchKey = app.name;
-                                           scope.shouldShowAppList = false;
-                                           clearAppsSelectedStatus();
-                                           selectedAppIdx = -1;
-
-                                       }
+                };
 
                                        UserService.load_user().then(function (result) {
                                            scope.userName = result.userId;
@@ -123,8 +89,12 @@ directive_module.directive('apollonav',
                                        PermissionService.has_root_permission().then(function(result) {
                                            scope.hasRootPermission = result.hasPermission;
                                        })
+
+                scope.changeLanguage = function (lang) {
+                    $translate.use(lang)
                                    }
                                }
+        }
 
                            });
 
@@ -223,7 +193,7 @@ directive_module.directive('apollorequiredfield', function ($compile, $window) {
 });
 
 /**  确认框 */
-directive_module.directive('apolloconfirmdialog', function ($compile, $window, $sce) {
+directive_module.directive('apolloconfirmdialog', function ($compile, $window, $sce,$translate) {
     return {
         restrict: 'E',
         templateUrl: '../../views/component/confirm-dialog.html',
@@ -246,7 +216,7 @@ directive_module.directive('apolloconfirmdialog', function ($compile, $window, $
             });
 
             if (!scope.confirmBtnText) {
-                scope.confirmBtnText = '确认';
+                scope.confirmBtnText = $translate.instant('ApolloConfirmDialog.DefaultConfirmBtnName');
             }
             
             scope.confirm = function () {

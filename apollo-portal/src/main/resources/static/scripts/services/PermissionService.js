@@ -67,6 +67,10 @@ appService.service('PermissionService', ['$resource', '$q', function ($resource,
         remove_app_role_from_user: {
             method: 'DELETE',
             url: '/apps/:appId/roles/:roleType?user=:user'
+        },
+        has_open_manage_app_master_role_limit: {
+            method: 'GET',
+            url: '/system/role/manageAppMaster'
         }
     });
 
@@ -196,6 +200,9 @@ appService.service('PermissionService', ['$resource', '$q', function ($resource,
         init_app_namespace_permission: function (appId, namespace) {
             return initAppNamespacePermission(appId, namespace);
         },
+        has_manage_app_master_permission: function (appId) {
+            return hasAppPermission(appId, 'ManageAppMaster');
+        },
         has_create_namespace_permission: function (appId) {
             return hasAppPermission(appId, 'CreateNamespace');
         },
@@ -314,6 +321,17 @@ appService.service('PermissionService', ['$resource', '$q', function ($resource,
                                                           function (result) {
                                                               d.resolve(result);
                                                           }, function (result) {
+                    d.reject(result);
+                });
+            return d.promise;
+        },
+        has_open_manage_app_master_role_limit: function () {
+            var d = $q.defer();
+            permission_resource.has_open_manage_app_master_role_limit({},
+                function (result) {
+                    d.resolve(result);
+                },
+                function (result) {
                     d.reject(result);
                 });
             return d.promise;

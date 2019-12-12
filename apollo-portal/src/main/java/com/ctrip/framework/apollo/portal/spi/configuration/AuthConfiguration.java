@@ -1,14 +1,26 @@
 package com.ctrip.framework.apollo.portal.spi.configuration;
 
-import java.util.Collections;
-import java.util.EventListener;
-import java.util.Map;
-
-import javax.servlet.Filter;
-import javax.sql.DataSource;
-
-import org.jasig.cas.client.session.SingleSignOutFilter;
-import org.jasig.cas.client.validation.Cas20ServiceTicketValidator;
+import com.ctrip.framework.apollo.common.condition.ConditionalOnMissingProfile;
+import com.ctrip.framework.apollo.core.utils.StringUtils;
+import com.ctrip.framework.apollo.portal.component.config.PortalConfig;
+import com.ctrip.framework.apollo.portal.spi.LogoutHandler;
+import com.ctrip.framework.apollo.portal.spi.SsoHeartbeatHandler;
+import com.ctrip.framework.apollo.portal.spi.UserInfoHolder;
+import com.ctrip.framework.apollo.portal.spi.UserService;
+import com.ctrip.framework.apollo.portal.spi.ctrip.CtripLogoutHandler;
+import com.ctrip.framework.apollo.portal.spi.ctrip.CtripSsoHeartbeatHandler;
+import com.ctrip.framework.apollo.portal.spi.ctrip.CtripUserInfoHolder;
+import com.ctrip.framework.apollo.portal.spi.ctrip.CtripUserService;
+import com.ctrip.framework.apollo.portal.spi.defaultimpl.DefaultLogoutHandler;
+import com.ctrip.framework.apollo.portal.spi.defaultimpl.DefaultSsoHeartbeatHandler;
+import com.ctrip.framework.apollo.portal.spi.defaultimpl.DefaultUserInfoHolder;
+import com.ctrip.framework.apollo.portal.spi.defaultimpl.DefaultUserService;
+import com.ctrip.framework.apollo.portal.spi.ldap.ApolloLdapAuthenticationProvider;
+import com.ctrip.framework.apollo.portal.spi.ldap.FilterLdapByGroupUserSearch;
+import com.ctrip.framework.apollo.portal.spi.ldap.LdapUserService;
+import com.ctrip.framework.apollo.portal.spi.springsecurity.SpringSecurityUserInfoHolder;
+import com.ctrip.framework.apollo.portal.spi.springsecurity.SpringSecurityUserService;
+import com.google.common.collect.Maps;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
@@ -283,13 +295,12 @@ public class AuthConfiguration {
       http.csrf().disable();
       http.headers().frameOptions().sameOrigin();
       http.authorizeRequests()
-          .antMatchers("/openapi/**", "/vendor/**", "/styles/**", "/scripts/**", "/views/**", "/img/**").permitAll()
+          .antMatchers("/prometheus/**","/metrics/**","/openapi/**", "/vendor/**", "/styles/**", "/scripts/**", "/views/**", "/img/**", "/i18n/**").permitAll()
           .antMatchers("/**").hasAnyRole(USER_ROLE);
-      http.formLogin().loginPage("/signin").permitAll().failureUrl("/signin?#/error").and().httpBasic();
-      SimpleUrlLogoutSuccessHandler urlLogoutHandler = new SimpleUrlLogoutSuccessHandler();
-      urlLogoutHandler.setDefaultTargetUrl("/signin?#/logout");
+      http.formLogin().loginPage("/signin").defaultSuccessUrl("/", true).permitAll().failureUrl("/signin?#/error").and()
+          .httpBasic();
       http.logout().logoutUrl("/user/logout").invalidateHttpSession(true).clearAuthentication(true)
-          .logoutSuccessHandler(urlLogoutHandler);
+          .logoutSuccessUrl("/signin?#/logout");
       http.exceptionHandling().authenticationEntryPoint(new LoginUrlAuthenticationEntryPoint("/signin"));
     }
 
@@ -486,9 +497,10 @@ public class AuthConfiguration {
           ldapContextSource, null);
       defaultAuthAutoConfiguration.setIgnorePartialResultException(true);
       defaultAuthAutoConfiguration.setSearchSubtree(true);
-      LdapAuthenticationProvider ldapAuthenticationProvider = new LdapAuthenticationProvider(
-          bindAuthenticator, defaultAuthAutoConfiguration);
-      return ldapAuthenticationProvider;
+      // Rewrite the logic of LdapAuthenticationProvider with ApolloLdapAuthenticationProvider,
+      // use userId in LDAP system instead of userId input by user.
+      return new ApolloLdapAuthenticationProvider(
+          bindAuthenticator, defaultAuthAutoConfiguration, ldapExtendProperties);
     }
 
     @Override
@@ -496,13 +508,12 @@ public class AuthConfiguration {
       http.csrf().disable();
       http.headers().frameOptions().sameOrigin();
       http.authorizeRequests()
-          .antMatchers("/openapi/**", "/vendor/**", "/styles/**", "/scripts/**", "/views/**", "/img/**").permitAll()
+          .antMatchers("/prometheus/**","/metrics/**","/openapi/**", "/vendor/**", "/styles/**", "/scripts/**", "/views/**", "/img/**", "/i18n/**").permitAll()
           .antMatchers("/**").authenticated();
-      http.formLogin().loginPage("/signin").permitAll().failureUrl("/signin?#/error").and().httpBasic();
-      SimpleUrlLogoutSuccessHandler urlLogoutHandler = new SimpleUrlLogoutSuccessHandler();
-      urlLogoutHandler.setDefaultTargetUrl("/signin?#/logout");
+      http.formLogin().loginPage("/signin").defaultSuccessUrl("/", true).permitAll().failureUrl("/signin?#/error").and()
+              .httpBasic();
       http.logout().logoutUrl("/user/logout").invalidateHttpSession(true).clearAuthentication(true)
-          .logoutSuccessHandler(urlLogoutHandler);
+              .logoutSuccessUrl("/signin?#/logout");
       http.exceptionHandling().authenticationEntryPoint(new LoginUrlAuthenticationEntryPoint("/signin"));
     }
 

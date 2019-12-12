@@ -297,7 +297,7 @@ table th {
 
 .project-info th {
     text-align: right;
-    padding: 4px 6px;
+    padding: 4px 2px;
     width: 5em;
 }
 
@@ -654,7 +654,7 @@ table th {
 .release-history .operation-caption {
     position: absolute;
     top: 45px;
-    width: 75px;
+    width: 100px;
     height: 18px;
     color: #fff;
     font-size: 12px;
@@ -805,3 +805,11 @@ table th {
     padding-left: 30px;
 }
 
+.app-search-list .select2-container, .app-search-list .select2-container .select2-selection {
+    height: 34px;
+}
+
+.app-search-list .select2-container .select2-selection .select2-selection__rendered {
+    line-height: 34px;
+    font-size: 14px;
+}
